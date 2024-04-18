@@ -1,0 +1,4 @@
+whatsapp-python
+fastapi
+uvicorn
+requests_toolbelt
