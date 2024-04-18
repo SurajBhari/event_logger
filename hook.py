@@ -1,6 +1,8 @@
 from whatsapp import WhatsApp, Message
 from json import load, loads, dump, dumps
 import logging
+import os
+from time import time
 from whatsapp import WhatsApp, Message
 from flask import Flask, request, Response
 try:
@@ -16,6 +18,26 @@ app = Flask(__name__)
 
 VERIFY_TOKEN = creds['verify-token']
 
+# make and verify data.json
+if "data.json" not in os.listdir("."):
+    with open("data.json", "w") as f:
+        dump({}, f)
+    sdata = {}
+else:
+    with open("data.json", "r") as f:
+        sdata = load(f)
+
+if "locations" not in sdata:
+    sdata['locations'] = [] # store location . {'time': '1713403389', 'sender':'7742055965', 'location': {'latitude': '12.9715987', 'longitude': '77.5945627'}}
+
+if "visits" not in sdata:
+    sdata['visits'] = [] # store visits . {'time': '1713403389', 'sender':'7742055965', 'message_content': 'I am here'}
+
+
+
+def update_data():
+    with open("data.json", "w") as f:
+        dump(sdata, f, indent=4)
 # Logging
 """
 logging.basicConfig(
@@ -45,8 +67,6 @@ def hook():
         new_message = messenger.is_message(data)
         if new_message:
             msg = Message(instance=messenger, data=data)
-            for att in dir(msg):
-                print(att, getattr(msg,att))
             mobile = msg.sender
             name = msg.name
             message_type = msg.type
@@ -58,7 +78,7 @@ def hook():
                 name = msg.name
                 logging.info("Message: %s", message)
                 m = Message(instance=messenger, to=mobile,
-                            content="Hello World")
+                            content=message)
                 m.send()
 
             elif message_type == "interactive":
@@ -79,20 +99,17 @@ def hook():
                 message_longitude = message_location["longitude"]
                 logging.info("Location: %s, %s",
                              message_latitude, message_longitude)
-
-            elif message_type == "image":
-                image = msg.image
-                if image is None:
-                    return Response(status=400)
-                image_id, mime_type = image["id"], image["mime_type"]
-                image_url = messenger.query_media_url(image_id)
-                if image_url is None:
-                    return Response(status=400)
-                image_filename = messenger.download_media(image_url, mime_type)
-                logging.info(f"{mobile} sent image {image_filename}")
-            else:
-                logging.info(f"{mobile} sent {message_type} ")
-                logging.info(data)
+                sdata['locations'].append({
+                    'time': int(time()),
+                    'sender': mobile,
+                    'location': {
+                        'latitude': message_latitude,
+                        'longitude': message_longitude
+                    }
+                })
+                update_data()
+                m = Message(instance=messenger, to=mobile, content=f"✔ Location: Updated at {time()}, {dumps(data,indent=4)}")
+                m.send()
         else:
             delivery = messenger.get_delivery(data)
             if delivery:
