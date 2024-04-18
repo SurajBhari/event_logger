@@ -37,8 +37,6 @@ def hook():
     # Handle Webhook Subscriptions
     data = request.get_json()
     # store the data to file for vertification 
-    with open("test.json", "w+") as f:
-        dump(data, f, indent=4)
     if data is None:
         return Response(status=200)
     logging.info("Received webhook data: %s", data)

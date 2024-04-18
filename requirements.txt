@@ -1,4 +1,4 @@
-whatsapp-python
+git+https://github.com/SurajBhari/whatsapp
 fastapi
 uvicorn
 requests_toolbelt
