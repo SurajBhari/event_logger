@@ -95,6 +95,10 @@ def hook():
                 message_location = msg.location
                 if message_location is None:
                     return Response(status=400)
+                if "name" in message_location:
+                    m = Message(instance=messenger, to=mobile, content=f"❌ Only give your current location.")
+                    m.send()
+                    return "OK", 200
                 message_latitude = message_location["latitude"]
                 message_longitude = message_location["longitude"]
                 logging.info("Location: %s, %s",
@@ -108,7 +112,7 @@ def hook():
                     }
                 })
                 update_data()
-                m = Message(instance=messenger, to=mobile, content=f"✔ Location: Updated at {time()}, {dumps(data,indent=4)}")
+                m = Message(instance=messenger, to=mobile, content=f"✔ Location: Updated at {time()}.")
                 m.send()
         else:
             delivery = messenger.get_delivery(data)
