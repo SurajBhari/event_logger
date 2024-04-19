@@ -84,10 +84,36 @@ def hook():
                     )
                     command_dict[message](data=data)
                     return "OK", 200
-                logging.info("Message: %s", message)
-                m = Message(instance=messenger, to=mobile,
-                            content=message)
-                m.send()
+                else:
+                    logging.info("Message: %s", message)
+                    x = messenger.send_reply_button(
+                        recipient_id=mobile,
+                        button={
+                            "type": "button",
+                            "body": {
+                                "text": "Choose action"
+                            },
+                            "action": {
+                                "buttons": [
+                                    {
+                                        "type": "reply",
+                                        "reply": {
+                                            "id": "site_visit",
+                                            "title": "🧳 Site Visit"
+                                        }
+                                    },
+                                    {
+                                        "type": "reply",
+                                        "reply": {
+                                            "id": "cancel",
+                                            "title": "❌ Cancel"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    )
+                    print(x)
 
             elif message_type == "interactive":
                 message_response = msg.interactive
@@ -122,6 +148,8 @@ def hook():
                 update_data()
                 m = Message(instance=messenger, to=mobile, content=f"✔ Location: Updated at {time()}.")
                 m.send()
+            else:
+                logging.info(f"Message : {msg.content} Type: {message_type}")
         else:
             delivery = messenger.get_delivery(data)
             if delivery:
@@ -154,7 +182,7 @@ def handle_location_ask(data:None):
         locations = u_l[mobile]
         string += f"{locations[0]['sender']['name']} ({mobile})\n"
         for l in locations:
-            string += f"{datetime.fromtimestamp(l['time'], tz=tz).strftime('%H:%M')} - {l['location']['latitude']}, {l['location']['latitude']}\n"
+            string += f"{datetime.fromtimestamp(l['time'], tz=tz).strftime('%H:%M')} - {l['location']['longitude']}, {l['location']['latitude']}\n"
         string += '\n\n'
     if not string:
         string = "No data"
