@@ -37,6 +37,11 @@ if "visits" not in sdata:
 
 
 
+last_message_content = {} # stores the last message content in case of getting better context of interactive messages
+
+def format_time(timestamp:int) -> str:
+    return datetime.fromtimestamp(timestamp, tz=tz).strftime('%Y-%m-%d %H:%M:%S')
+
 def update_data():
     with open("data.json", "w") as f:
         dump(sdata, f, indent=4)
@@ -91,7 +96,7 @@ def hook():
                         button={
                             "type": "button",
                             "body": {
-                                "text": "Choose action"
+                                "text": f"Choose action: {message}"
                             },
                             "action": {
                                 "buttons": [
@@ -113,6 +118,7 @@ def hook():
                             }
                         }
                     )
+                    last_message_content[msg.sender] = message
                     print(x)
 
             elif message_type == "interactive":
@@ -122,8 +128,30 @@ def hook():
                 interactive_type = message_response.get("type")
                 message_id = message_response[interactive_type]["id"]
                 message_text = message_response[interactive_type]["title"]
+                print(message_id, message_text)
                 logging.info(
                     f"Interactive Message; {message_id}: {message_text}")
+                if message_id == "site_visit":
+                    try:
+                        last_message = last_message_content[mobile]
+                    except KeyError:
+                        last_message = None
+                    if last_message is None:
+                        m = Message(instance=messenger, to=mobile, content="❌ Please send a message first.")
+                        m.send()
+                        return "OK", 200
+                    sdata['visits'].append({
+                        'time': int(time()),
+                        'sender': {'mobile':mobile, 'name':name},
+                        'message_content': last_message
+                    })
+                    update_data()
+                    m = Message(instance=messenger, to=mobile, content=f"✔ Site Visit: {last_message} Updated at {format_time(int(time()))}.")
+                    m.send()
+                elif message_id == "cancel":
+                    last_message_content.pop(mobile)
+                    m = Message(instance=messenger, to=mobile, content=f"❌ Action: Cancelled.")
+                    m.send()
 
             elif message_type == "location":
                 message_location = msg.location
