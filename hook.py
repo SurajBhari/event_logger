@@ -83,9 +83,9 @@ def hook():
             if message_type == "text":
                 message = msg.content
                 name = msg.name
-                if message in command_dict:
+                if message.lower() in command_dict:
                     logging.info(
-                        f"Launching command {command_dict[message]}"
+                        f"Launching command {command_dict[message.lower()]}"
                     )
                     command_dict[message](data=data)
                     return "OK", 200
@@ -174,7 +174,7 @@ def hook():
                     }
                 })
                 update_data()
-                m = Message(instance=messenger, to=mobile, content=f"✔ Location: Updated at {time()}.")
+                m = Message(instance=messenger, to=mobile, content=f"✔ Location: Updated at {format_time(int(time()))}.")
                 m.send()
             else:
                 logging.info(f"Message : {msg.content} Type: {message_type}")
@@ -218,8 +218,41 @@ def handle_location_ask(data:None):
     m.send()
     return
 
+def handle_visit_ask(data:None):
+    if not data:
+        return
+    m = Message(instance=messenger, data=data)
+    if m.sender not in admins:
+        return 
+    u_l = {}
+    today = datetime.today()
+    for visit in sdata['visits']:
+        xtime = datetime.fromtimestamp(visit['time'], tz=tz)
+        if xtime.date() != today.date():
+            continue
+        try:
+            u_l[visit['sender']['mobile']].append(visit)
+        except KeyError:
+            u_l[visit['sender']['mobile']] = [visit]
+    
+    string = ""
+    for mobile in u_l:
+        visit = u_l[mobile]
+        string += f"{visit[0]['sender']['name']} ({mobile})\n"
+        for v in visit:
+            string += f"{datetime.fromtimestamp(v['time'], tz=tz).strftime('%H:%M')} - {v['message_content']}\n"
+        string += '\n\n'
+    if not string:
+        string = "No data"
+    m = Message(instance=messenger, to=m.sender, content=string)
+    m.send()
+    return
+
 command_dict = {
-    'location': handle_location_ask
+    'location': handle_location_ask,
+    "visit": handle_visit_ask,
+    "sitevisit": handle_visit_ask,
+    "site": handle_visit_ask
 }
 
 if __name__ == "__main__":
