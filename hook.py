@@ -70,6 +70,8 @@ def hook():
         return Response(status=200)
     logging.info("Received webhook data: %s", data)
     changed_field = messenger.changed_field(data)
+    with open("test.json", "w+") as f:
+        dump(data, f, indent=4)
     if changed_field == "messages":
         new_message = messenger.is_message(data)
         if new_message:
